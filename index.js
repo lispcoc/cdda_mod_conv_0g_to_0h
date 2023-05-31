@@ -45,7 +45,8 @@ const processValueNameChange = ((obj, key) => {
 const processKeyNameChange = ((obj, key) => {
     var change = false
     const translate = [
-        ["fail_multiplier", "skill_penalty"]
+        ["fail_multiplier", "skill_penalty"],
+        ["default_fail_multiplier", "default_skill_penalty"]
     ]
     translate.forEach(t => {
         if (key == t[0]) {

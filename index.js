@@ -46,11 +46,14 @@ const processKeyNameChange = ((obj, key) => {
     var change = false
     const translate = [
         ["fail_multiplier", "skill_penalty"],
-        ["default_fail_multiplier", "default_skill_penalty"]
+        ["default_fail_multiplier", "default_skill_penalty"],
+        ["standard_symbols", ""]
     ]
     translate.forEach(t => {
         if (key == t[0]) {
-            obj[t[1]] = obj[t[0]]
+            if (t[1] != "") {
+                obj[t[1]] = obj[t[0]]
+            }
             delete obj[t[0]]
             console.log("[Change]" + t[0] + " => " + t[1])
             change = true

@@ -42,15 +42,10 @@ const processValueNameChange = ((obj, key) => {
     return change
 })
 
-const processKeyNameChange = ((obj, key) => {
+const replaceKey = ((obj, translate) => {
     var change = false
-    const translate = [
-        ["fail_multiplier", "skill_penalty"],
-        ["default_fail_multiplier", "default_skill_penalty"],
-        ["standard_symbols", ""]
-    ]
     translate.forEach(t => {
-        if (key == t[0]) {
+        if (obj.hasOwnProperty(t[0])) {
             if (t[1] != "") {
                 obj[t[1]] = obj[t[0]]
             }
@@ -59,26 +54,48 @@ const processKeyNameChange = ((obj, key) => {
             change = true
         }
     })
+    return change = true
+})
+
+const processKeyNameChange = ((obj, key) => {
+    var change = false
+    const translate = [
+        ["fail_multiplier", "skill_penalty"],
+        ["default_fail_multiplier", "default_skill_penalty"],
+        ["ups_charges_multiplier", "ammo_to_fire_multiplier"],
+        ["standard_symbols", ""],
+        ["wheel_type", ""]
+    ]
+    replaceKey(obj, translate)
     return change
 })
 
 const processDamageFormatChange = ((obj) => {
-    var change = false
-    const table = [
-        ["bashing", "bash"],
-        ["cutting", "cut"]
-    ]
-    var melee_damage = {};
-    table.forEach(t => {
-        if (obj[t[0]] != null) {
-            melee_damage[t[1]] = obj[t[0]]
-            delete obj[t[0]]
-            change = true
+})
+
+const processUpsCharges = ((obj) => {
+    if (obj.hasOwnProperty("ups_charges")) {
+        // 旧表記の1 = 1 kJ
+        obj["energy_drain"] = obj["ups_charges"] + " kJ"
+        delete obj["ups_charges"]
+        if (obj["copy-from"]) {
+            if (obj["extend"] && obj["extend"]["flags"]) {
+                if (obj["extend"].hasOwnProperty("flags")) {
+                    obj["extend"]["flags"].push("USE_UPS")
+                } else {
+                    obj["extend"]["flags"] =  [ "USE_UPS" ]
+                }
+            } else {
+                obj["extend"] = { "flags": [ "USE_UPS" ] }
+            }
+        } else {
+            if (obj.hasOwnProperty("flags")) {
+                obj["flags"].push("USE_UPS")
+            } else {
+                obj["flags"] = [ "USE_UPS" ]
+            }
         }
-    })
-    if (obj["melee_damage"] == null && change) {
-        obj["melee_damage"] = melee_damage
-        console.log("[Change]melee_damage")
+        console.log("[Change]ups_charges => energy_drain")
     }
 })
 
@@ -100,7 +117,7 @@ const processResistFormatChange = ((obj) => {
             change = true
         }
     })
-    if (obj["resist"] == null && change) {
+    if (obj.hasOwnProperty("resist") && change) {
         obj["resist"] = resist
         console.log("[Change]resist")
     }
@@ -113,7 +130,7 @@ const processObsoleteFlag = ((obj) => {
         "UNARMED_WEAPON"
     ]
     var resist = {};
-    if (obj["flags"] != null) {
+    if (obj.hasOwnProperty("flags")) {
         const old_len = obj["flags"].length
         obj["flags"] = obj["flags"].filter(f => !table.find(f2 => f2 == f))
         const new_len = obj["flags"].length
@@ -133,13 +150,14 @@ const processObject = (obj => {
             if (isObject(obj[key])) {
                 processObject(obj[key])
             } else {
-                processKeyNameChange(obj, key)
                 processValueNameChange(obj, key)
             }
         }
+        processKeyNameChange(obj)
         processDamageFormatChange(obj)
         processResistFormatChange(obj)
         processObsoleteFlag(obj)
+        processUpsCharges(obj)
     }
 })
 

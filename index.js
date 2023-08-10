@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { isObject } = require('util');
+const { isNumberObject } = require('util/types');
 const execSync = require('child_process').execSync
 
 
@@ -64,13 +65,31 @@ const processKeyNameChange = ((obj, key) => {
         ["default_fail_multiplier", "default_skill_penalty"],
         ["ups_charges_multiplier", "ammo_to_fire_multiplier"],
         ["standard_symbols", ""],
+        ["req_buffs", "required_buffs_all"],
         ["wheel_type", ""]
     ]
     replaceKey(obj, translate)
     return change
 })
 
-const processDamageFormatChange = ((obj) => {
+const processMeleeDamageFormatChange = ((obj) => {
+    var change = false
+    const table = [
+        ["bashing", "bash"],
+        ["cutting", "cut"]
+    ]
+    var melee_damage = {};
+    table.forEach(t => {
+        if (obj[t[0]] != null) {
+            melee_damage[t[1]] = obj[t[0]]
+            delete obj[t[0]]
+            change = true
+        }
+    })
+    if (change) {
+        obj["melee_damage"] = melee_damage
+        console.log("[Change]melee_damage")
+    }
 })
 
 const processUpsCharges = ((obj) => {
@@ -124,7 +143,6 @@ const processResistFormatChange = ((obj) => {
 })
 
 const processObsoleteFlag = ((obj) => {
-    var change = false
     const table = [
         "STAB",
         "UNARMED_WEAPON"
@@ -137,6 +155,53 @@ const processObsoleteFlag = ((obj) => {
         if (new_len != old_len) {
             console.log("[Change]Obsolete Flag")
         }
+    }
+})
+
+const processTechniques = ((obj) => {
+    if(obj.hasOwnProperty("min_melee")) {
+        obj["skill_requirements"] = [{ "name": "melee", "level": obj["min_melee"] }]
+        delete obj["min_melee"]
+        console.log("[Change]min_melee")
+    }
+})
+
+const processModInfo = ((obj) => {
+    delete obj["mod-type"]
+})
+
+const processNamePlural = ((obj) => {
+    if(obj.hasOwnProperty("name_plural")) {
+        if(isObject(obj["name"])) {
+            obj["name"]["str_pl"] = obj["name_plural"]
+        } else {
+            obj["name"] = {str: obj["name"], str_pl: obj["name_plural"]}
+        }
+        delete obj["name_plural"]
+        console.log("[Change]name_plural")
+    }
+})
+
+const processRecipe = ((obj) => {
+    if(obj["type"] == "recipe") {
+        if(!isNaN(obj["time"])) {
+            obj["time"] = obj["time"] + " s"
+            console.log("[Change]time")
+        }
+    }
+})
+
+const processArtifactData = ((obj) => {
+    var relic_data = {passive_effects: []}
+    if(obj.hasOwnProperty("artifact_data")) {
+        if(obj["artifact_data"].hasOwnProperty("effects_wielded")) {
+            for(var a of obj["artifact_data"]["effects_wielded"]) {
+                relic_data.passive_effects.push({ id: a})
+            }
+        }
+        delete obj["artifact_data"]
+        obj["relic_data"] = relic_data
+        console.log("[Change]artifact_data")
     }
 })
 
@@ -153,11 +218,16 @@ const processObject = (obj => {
                 processValueNameChange(obj, key)
             }
         }
+        processNamePlural(obj)
         processKeyNameChange(obj)
-        processDamageFormatChange(obj)
+        processMeleeDamageFormatChange(obj)
         processResistFormatChange(obj)
         processObsoleteFlag(obj)
         processUpsCharges(obj)
+        processTechniques(obj)
+        processModInfo(obj)
+        processRecipe(obj)
+        processArtifactData(obj)
     }
 })
 
